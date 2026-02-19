@@ -92,7 +92,7 @@ for m in metrics:
         df_chart[f"Avg_{m}"] = df_chart.groupby('plot_date')[m].transform('mean')
 
 # --- 7. КОНТРОЛЬНА ПАНЕЛЬ (STATUS RIBBON) ---
-st.title("🚜 Agro Analytics Modular System")
+st.title("🚜 Agro Analytics")
 
 # Математика масштабу (Поле-Рік)
 daily_sum = df_f.groupby(['year', 'plot_date'])['field_count'].sum().reset_index()
@@ -138,3 +138,4 @@ with tabs[2]: tables_page.show(df_chart, sel_years, sel_cluster, sel_block, sel_
 with tabs[3]: constructor_page.show(df_chart, color_map)
 
 with tabs[4]: analytics_page.show(df_chart, color_map)
+
