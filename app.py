@@ -46,7 +46,7 @@ def check_password():
         st.title("🚜 Agro Analytics Access")
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
-            st.text_input("Введіть пароль Continental:", type="password", key="password_input")
+            st.text_input("Введіть пароль:", type="password", key="password_input")
             if st.button("Увійти", use_container_width=True):
                 if st.session_state["password_input"] == st.secrets["auth"]["password"]:
                     st.session_state["password_correct"] = True
@@ -136,4 +136,5 @@ with tabs[0]: temp_page.show(df_chart, color_map)
 with tabs[1]: precip_page.show(df_chart, color_map)
 with tabs[2]: tables_page.show(df_chart, sel_years, sel_cluster, sel_block, sel_culture) 
 with tabs[3]: constructor_page.show(df_chart, color_map)
+
 with tabs[4]: analytics_page.show(df_chart, color_map)
