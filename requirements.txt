@@ -4,3 +4,4 @@ plotly
 pyarrow
 fastparquet
 numpy
+matplotlib
