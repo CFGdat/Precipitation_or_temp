@@ -2,15 +2,14 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-import glob
 import os
 
 # 1. КОНСТАНТИ ТА ШЛЯХИ
-FILE_TO_LOAD = 'WEB_AGG_DATA.parquet'      # Агреговані дані для швидких графіків
-CHUNKS_PATH = 'data_chunks/*.parquet'       # Шлях до твоїх частин по 25 МБ
+FILE_TO_LOAD = 'WEB_AGG_DATA.parquet'             # Агреговані дані для швидких графіків
+FIELD_SUMMARY_FILE = 'WEB_FIELD_SUMMARY.parquet'  # Готові зведені дані по полях
 ETALON_YEAR = '2025'
 
-# 2. ЗАВАНТАЖЕННЯ АГРЕГОВАНИХ ДАНИХ (Для основних табів)
+# 2. ЗАВАНТАЖЕННЯ АГРЕГОВАНИХ ДАНИХ (Для основних графіків)
 @st.cache_data
 def load_data():
     if not os.path.exists(FILE_TO_LOAD):
@@ -35,61 +34,28 @@ def load_data():
     
     return df
 
-# 3. ЗАВАНТАЖЕННЯ ДЕТАЛЬНИХ ДАНИХ (Збирання частин по 25 МБ)
+# 3. ШВИДКЕ ЗАВАНТАЖЕННЯ ГОТОВОЇ ТАБЛИЦІ ПО ПОЛЯХ (Для таблиць)
 @st.cache_data
-def load_raw_data():
-    """
-    Збирає всі файли з папки data_chunks і склеює їх в один DataFrame.
-    Це дозволяє обійти ліміт завантаження файлів на GitHub.
-    """
-    try:
-        # Шукаємо всі parquet-файли в папці
-        all_parts = glob.glob(CHUNKS_PATH)
-        
-        if not all_parts:
-            # Якщо частин немає, повертаємо порожній DF (або агрегований як фолбек)
-            return pd.DataFrame()
-        
-        # Читаємо кожну частину та додаємо в список
-        chunks = []
-        for file in all_parts:
-            chunks.append(pd.read_parquet(file))
-            
-        # Зшиваємо все в один масив
-        df_raw = pd.concat(chunks, ignore_index=True)
-        
-        # Конвертуємо дати після зшивання
-        if 'date' in df_raw.columns:
-            df_raw['date'] = pd.to_datetime(df_raw['date'])
-            
-        # Сортуємо, щоб дані в таблицях йшли по порядку
-        df_raw = df_raw.sort_values(['year', 'date'])
-        
-        return df_raw
-    except Exception as e:
-        st.error(f"Критична помилка збірки даних: {e}")
+def load_field_summary():
+    """Миттєво завантажує вже прораховану агрегацію."""
+    if not os.path.exists(FIELD_SUMMARY_FILE):
+        st.error(f"Файл {FIELD_SUMMARY_FILE} не знайдено! Запусти скрипт precompute_summary.py")
         return pd.DataFrame()
+    return pd.read_parquet(FIELD_SUMMARY_FILE)
 
 # 4. КОЛІРНА СХЕМА
 def get_colors(df):
     all_years = sorted(df['year_str'].unique())
     palette = px.colors.qualitative.Safe
-    # Еталон завжди червоний, решта - за списком
     return {y: ("red" if y == ETALON_YEAR else palette[i % len(palette)]) 
             for i, y in enumerate(all_years)}
 
-# 5. УНІВЕРСАЛЬНА СТИЛІЗАЦІЯ (Безпечна для всіх типів графіків)
+# 5. УНІВЕРСАЛЬНА СТИЛІЗАЦІЯ
 def apply_style(fig, etalon=ETALON_YEAR):
-    """
-    Налаштовує товщину ліній та легенду. 
-    Включає перевірку наявності атрибутів, щоб не ламати Bar Charts.
-    """
     for trace in fig.data:
-        # Стиль для ліній (Scatter)
         if hasattr(trace, 'line') and trace.line is not None:
             trace.line.width = 3.5 if trace.name == etalon else 1.8
         
-        # Стиль для стовпчиків (Bar)
         if trace.type == 'bar':
             trace.marker.line.width = 0.5
             trace.marker.line.color = 'white'
@@ -97,13 +63,13 @@ def apply_style(fig, etalon=ETALON_YEAR):
     fig.update_layout(
         hovermode="x unified",
         margin=dict(t=40, b=10, l=10, r=10),
-        legend=dict(title_text=""), # Прибираємо заголовок легенди для чистоти
+        legend=dict(title_text=""),
         paper_bgcolor='rgba(0,0,0,0)',
         plot_bgcolor='rgba(0,0,0,0)'
     )
     return fig
 
-# 6. СЛОВНИК МЕТРИК (Твоє джерело правди)
+# 6. СЛОВНИК МЕТРИК
 def get_metrics_dict():
     return {
         "GDD (Ефективні Т > 10)": "Sum_T_active",
