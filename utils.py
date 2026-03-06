@@ -22,13 +22,21 @@ def load_data():
     date_col = 'date' if 'date' in df.columns else 'plot_date'
     df[date_col] = pd.to_datetime(df[date_col])
     
+    # ── ВІДНОВЛЕННЯ ЗНИКЛИХ КОЛОНОК (щоб app.py не видавав помилок) ──
+    if 'month' not in df.columns:
+        df['month'] = df[date_col].dt.month
+    if 'day' not in df.columns:
+        df['day'] = df[date_col].dt.day
+    if 'field_count' not in df.columns:
+        df['field_count'] = 1  # Додаємо заглушку для кількості полів
+        
     df['year_str'] = df['year'].astype(str)
     
     # Синхронізація дат на 2024 рік для накладання графіків
     df['plot_date'] = df[date_col].map(lambda d: d.replace(year=2024))
     df['hover_date'] = df['plot_date'].dt.strftime('%d-%b')
     
-    # Розрахунок декад (якщо є колонка дня)
+    # Розрахунок декад
     if 'day' in df.columns:
         df['decade'] = df['day'].apply(lambda x: 1 if x <= 10 else (2 if x <= 20 else 3))
     
@@ -75,6 +83,8 @@ def get_metrics_dict():
         "GDD (Ефективні Т > 10)": "Sum_T_active",
         "Сума Т (якщо Т > 0)": "Sum_T_eff_0",
         "Сума Т (якщо Т > 10)": "Sum_T_eff_10",
+        "Теплові одиниці (Загальні)": "Sum_CHU",
+        "CHU Соя (15.05 - мороз)": "Sum_CHU_soy",   # <--- НОВЕ
         "Накопичені опади": "Sum_Precipitation",
         "Щоденні опади": "precipitation",
         "Мін. температура": "min",
